@@ -1,6 +1,4 @@
 import sys
-import os
-import time
 import importlib
 if sys.version_info < (3,0):
     import cPickle as pickle
@@ -8,43 +6,27 @@ else:
     import pickle
 import numpy as np
 import argparse
-import pdb
-import json
 
 parser = argparse.ArgumentParser()
 parser.add_argument('metadata_path')
-parser.add_argument('--rng_seed', type=int, default=42)
 parser.add_argument('--temperature', type=float, default=1.0)
-parser.add_argument('--ntunes', type=int, default=1)
+
 parser.add_argument('--seed')
-parser.add_argument('--song', type=int, default=1)
-parser.add_argument('--terminal', action="store_true")
+parser.add_argument('--transcription_id', type=int, default=1)
 
 args = parser.parse_args()
 
 metadata_path = args.metadata_path
-rng_seed = args.rng_seed
 temperature = args.temperature
-ntunes = args.ntunes
 seed = args.seed
-song = args.song
+transcription_id = args.transcription_id
 
 with open(metadata_path, "rb") as f:
     metadata = pickle.load(f)
 
-if not os.path.isdir('samples'):
-    os.makedirs('samples')
-target_path = "samples/%s-s%d-%.2f-%s.txt" % (
-    metadata['experiment_id'], rng_seed, temperature, time.strftime("%Y%m%d-%H%M%S", time.localtime()))
-
 token2idx = metadata['token2idx']
-idx2token = dict((v, k) for k, v in token2idx.iteritems())
-vocab_size = len(token2idx)
 
-start_idx, end_idx = token2idx['<s>'], token2idx['</s>']
-
-rng = np.random.RandomState(rng_seed)
-vocab_idxs = np.arange(vocab_size)
+start_idx = token2idx['<s>']
 
 LSTM_Wxi=[]
 LSTM_Wxf=[]
@@ -101,87 +83,33 @@ sizeofx=LSTM_Wxi[0].shape[0]
 x = np.zeros(sizeofx, dtype=np.int8)
 # Converting the seed passed as an argument into a list of idx
 seed_sequence = [start_idx]
-matrix_wanted=[]
+distribution_matrix=[]
 if seed is not None:
     for token in seed.split(' '):
          seed_sequence.append(token2idx[token])
          
-    # initialise network
+    # Running the annotation through the network
     for tok in seed_sequence[:-1]:
-      x = np.zeros(sizeofx, dtype=np.int8)
-      x[tok] = 1
-      for jj in range(numlayers):
-        it=sigmoid(np.dot(x,LSTM_Wxi[jj]) + np.dot(htm1[jj],LSTM_Whi[jj]) + LSTM_bi[jj])
-        ft=sigmoid(np.dot(x,LSTM_Wxf[jj]) + np.dot(htm1[jj],LSTM_Whf[jj]) + LSTM_bf[jj])
-        ct=np.multiply(ft,ctm1[jj]) + np.multiply(it,np.tanh(np.dot(x,LSTM_Wxc[jj]) + np.dot(htm1[jj],LSTM_Whc[jj]) + LSTM_bc[jj]))
-        ot=sigmoid(np.dot(x,LSTM_Wxo[jj]) + np.dot(htm1[jj],LSTM_Who[jj]) + LSTM_bo[jj])
-        ht=np.multiply(ot,np.tanh(ct))
-        x=ht
-        ctm1[jj]=ct
-        htm1[jj]=ht
-
-      vector_wanted = softmax(np.dot(x,FC_output_W) + FC_output_b,temperature)
-      matrix_wanted.append(vector_wanted[-1].squeeze())
-    matrix_wanted = np.array(matrix_wanted)
-    for jj in range(numlayers):
-        LSTM_hid_init[jj]=htm1[jj]
-        LSTM_cell_init[jj]=ctm1[jj]
-
-filename = "matrix_%d.txt" %song
-np.savetxt(fname=filename, X=matrix_wanted)
-
-exit()
+        x = np.zeros(sizeofx, dtype=np.int8)
+        x[tok] = 1
+        for jj in range(numlayers):
+            it=sigmoid(np.dot(x,LSTM_Wxi[jj]) + np.dot(htm1[jj],LSTM_Whi[jj]) + LSTM_bi[jj])
+            ft=sigmoid(np.dot(x,LSTM_Wxf[jj]) + np.dot(htm1[jj],LSTM_Whf[jj]) + LSTM_bf[jj])
+            ct=np.multiply(ft,ctm1[jj]) + np.multiply(it,np.tanh(np.dot(x,LSTM_Wxc[jj]) + np.dot(htm1[jj],LSTM_Whc[jj]) + LSTM_bc[jj]))
+            ot=sigmoid(np.dot(x,LSTM_Wxo[jj]) + np.dot(htm1[jj],LSTM_Who[jj]) + LSTM_bo[jj])
+            ht=np.multiply(ot,np.tanh(ct))
+            x=ht
+            ctm1[jj]=ct
+            htm1[jj]=ht
+        
+        #Prop distribution vector for next token 
+        distribution_for_next_token = softmax(np.dot(x,FC_output_W) + FC_output_b,temperature)
+        distribution_matrix.append(distribution_for_next_token[-1].squeeze())
 
 
-# header=idx2token.values()
-# with open('vocabulary.txt', 'w') as outfile:
-#     json.dump(idx2token, outfile)
-# #headerstr="\""+header[0]
-# #for hh in header[1:]:
-# #   headerstr+="\", "+"\""+hh
-# for i in xrange(ntunes):
-#     # initialise network
-#     output=[]
-#     for jj in range(numlayers):
-#         htm1[jj]=LSTM_hid_init[jj]
-#         ctm1[jj]=LSTM_cell_init[jj]
-#     sequence = seed_sequence[:]
-#     while sequence[-1] != end_idx:
-#       x = np.zeros(sizeofx, dtype=np.int8)
-#       x[sequence[-1]] = 1
-#       for jj in range(numlayers):
-#         it=sigmoid(np.dot(x,LSTM_Wxi[jj]) + np.dot(htm1[jj],LSTM_Whi[jj]) + LSTM_bi[jj])
-#         ft=sigmoid(np.dot(x,LSTM_Wxf[jj]) + np.dot(htm1[jj],LSTM_Whf[jj]) + LSTM_bf[jj])
-#         ct=np.multiply(ft,ctm1[jj]) + np.multiply(it,np.tanh(np.dot(x,LSTM_Wxc[jj]) + np.dot(htm1[jj],LSTM_Whc[jj]) + LSTM_bc[jj]))
-#         ot=sigmoid(np.dot(x,LSTM_Wxo[jj]) + np.dot(htm1[jj],LSTM_Who[jj]) + LSTM_bo[jj])
-#         ht=np.multiply(ot,np.tanh(ct))
-#         x=ht
-#         ctm1[jj]=ct
-#         htm1[jj]=ht
+#To numpy matrix
+distribution_matrix = np.array(distribution_matrix)
 
-#       vector_wanted = softmax(np.dot(x,FC_output_W) + FC_output_b,temperature)
-#       #print(vector_wanted.shape)
-#       output.append(vector_wanted)
-#       next_itoken=rng.choice(vocab_idxs, p=output[-1].squeeze())
-#       sequence.append(next_itoken)
-#       if len(sequence) > 1000: break
-    
-#     #np.savetxt('heatmap_'+repr(i)+'.txt',np.concatenate(output),fmt='%.5f',delimiter=',')
-   
-#     abc_tune = [idx2token[j] for j in sequence[1:-1]]
-#     if not args.terminal:
-#         print('X:' + repr(i))
-#         f = open(target_path, 'a+')
-#         f.write('X:' + repr(i) + '\n')
-#         f.write(abc_tune[0] + '\n')
-#         f.write(abc_tune[1] + '\n')
-#         f.write(' '.join(abc_tune[2:]) + '\n\n')
-#         f.close()
-#     else:
-#         print('X:' + repr(i))
-#         print(abc_tune[0])
-#         print(abc_tune[1])
-#         print(''.join(abc_tune[2:]) + '\n')
-
-# if not args.terminal:
-#     print('Saved to '+target_path)
+#Save matrix to file
+filename_matrix = "matrix_%d.txt" %transcription_id
+np.savetxt(fname=filename_matrix, X=distribution_matrix)

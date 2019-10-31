@@ -1,6 +1,6 @@
 # Annotation Distances With DTW
 
-Uses the probability distribution for each token in the annotation to create a matrix of distributions. Use DTW to calculate a distance between these matrices. This is a modification of the code found [here]([http](https://github.com/IraKorshunova/folk-rnn))
+Uses the probability distribution for each token in the annotation to create a matrix of distributions. Use DTW to calculate a distance between these matrices. This is a modification of the code found [here](https://github.com/IraKorshunova/folk-rnn)
 
 ## How-to
 Run in two steps

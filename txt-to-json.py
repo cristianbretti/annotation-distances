@@ -13,20 +13,19 @@ with open(data_file, 'r', encoding="utf-8") as f:
     song_object = dict()
     for line in f:
         line = line.strip()
-        if len(line) == 0:
-            if 'annotation' in song_object:
+        if len(line) != 0:
+            if line[0] == 'T':
+                song_object['title'] = line[2:]
+            elif line[0] == 'M':
+                song_object['meter'] = line[2:]
+            elif line[0] == 'K':
+                song_object['key'] = line[2:]
+            else:
+                song_object['transcription'] = line
                 song_object['id'] = id
                 songs.append(song_object)
                 id += 1
                 song_object = dict()
-        elif line[0] == 'T':
-            song_object['title'] = line[2:]
-        elif line[0] == 'M':
-            song_object['meter'] = line[2:]
-        elif line[0] == 'K':
-            song_object['key'] = line[2:]
-        else:
-            song_object['annotation'] = line
     
 
 

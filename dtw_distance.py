@@ -21,10 +21,13 @@ sorting = args.sorting
 def compare_two_matrices(first_path, second_path):
     matrix_1 = np.array(np.loadtxt(fname=first_path))
     matrix_2 = np.array(np.loadtxt(fname=second_path))
-
+    
     distance, path = fastdtw(matrix_1, matrix_2, dist=euclidean)
+    
+    max_length = matrix_1.shape[0] if matrix_1.shape[0] > matrix_2.shape[0] else matrix_2.shape[0]
+    norm_distance = (max_length - distance) / max_length
 
-    return distance
+    return norm_distance
 
 directory = 'matrices'
 filenames = []
@@ -39,8 +42,8 @@ for i, first_file in enumerate(filenames):
         if i != j:
             first_path = directory + '/' + first_file
             second_path = directory + '/' + filenames[j]
-            distance = compare_two_matrices(first_path, second_path)
-            distances.append({'first': first_path, 'second': second_path, 'distance': distance})
+            norm_distance = compare_two_matrices(first_path, second_path)
+            distances.append({'first': first_path, 'second': second_path, 'distance': norm_distance})
             print("Calulating distance between %s and %s" %(first_path, second_path))
     print('')
 
@@ -49,4 +52,4 @@ if sorting:
     distances.sort(key=lambda x: x['distance'])
 
 for distance_object in distances:
-    print("Distance between %s and %s is: %.4f" %(distance_object['first'], distance_object['second'], distance_object['distance']))
+    print("Distance between %s and %s is: %.5f" %(distance_object['first'], distance_object['second'], distance_object['distance']))

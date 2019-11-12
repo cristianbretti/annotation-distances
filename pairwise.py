@@ -53,7 +53,9 @@ def softmax(x,T):
         x=expx/sumexpx
     return x
 
-def create_matrix(annotation):
+def create_matrix(annotation_object):
+    annotation = "M:" + annotation_object['meter'] + " " + "K:" + annotation_object['key'] + " " + annotation_object['transcription']
+
     LSTM_Wxi=[]
     LSTM_Wxf=[]
     LSTM_Wxc=[]
@@ -129,25 +131,23 @@ matrices_second = []
 
 for annotation_object in annotations_1:
     annotation_id = annotation_object['id']
-    annotation = "M:" + annotation_object['meter'] + " " + "K:" + annotation_object['key'] + " " + annotation_object['transcription']
 
-    matrix = create_matrix(annotation)
+    matrix = create_matrix(annotation_object)
     matrices_first.append((annotation_id, matrix))
 
 for annotation_object in annotations_2:
     annotation_id = annotation_object['id']
-    annotation = "M:" + annotation_object['meter'] + " " + "K:" + annotation_object['key'] + " " + annotation_object['transcription']
     
-    matrix = create_matrix(annotation)
-    matrices_first.append((annotation_id, matrix))
+    matrix = create_matrix(annotation_object)
+    matrices_second.append((annotation_id, matrix))
 
 
 def compare_two_matrices(matrix_1, matrix_2):
-    #distance, path = fastdtw(np.array(matrix_1), np.array(matrix_2), dist=euclidean)
+    distance, path = fastdtw(np.array(matrix_1), np.array(matrix_2), dist=euclidean)
     np_1 = np.array(matrix_1)
     np_2 = np.array(matrix_2)
     max_length = matrix_1.shape[0] if matrix_1.shape[0] > matrix_2.shape[0] else matrix_2.shape[0]
-    norm_distance = (max_length - 10) / max_length
+    norm_distance = (max_length - distance) / max_length
 
     return abs(norm_distance)
 

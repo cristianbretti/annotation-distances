@@ -158,7 +158,8 @@ for (id1, matrix_1) in matrices_first:
         norm_distance = compare_two_matrices(matrix_1, matrix_2)
         metrics.append({'id1': id1, 'id2': id2, 'metric': norm_distance})
 
-metrics.sort(key=lambda x: x['metric'])
+metrics.sort(reverse=True, key=lambda x: x['metric'])
+metrics.sort(key=lambda x: x['id1'])
 
 with open("output2.json", 'w') as fout:
     json.dump(metrics, fout, ensure_ascii=False)
